@@ -17,7 +17,7 @@ async fn main() {
     let index_options = Options::parse();
     let mut index = Index::open(&index_options).unwrap();
     let (sender, mut receiver) = tokio::sync::mpsc::channel::<LocationUpdateEvent>(128);
-    index.with_location_update_sender(sender);
+    index.with_event_sender(sender);
 
     // Handle Ctrl-C
     ctrlc::set_handler(move || {
@@ -29,7 +29,14 @@ async fn main() {
     let receiver_handle = tokio::spawn(async move {
         while !SHUTDOWN_SIGNAL.load(Ordering::SeqCst) {
             if let Some(event) = receiver.recv().await {
-                println!("Received event: {:?}", event);
+                match event {
+                    LocationUpdateEvent::InscriptionCreated { .. } => {
+                        println!("Inscription created: {:?}", event);
+                    }
+                    LocationUpdateEvent::InscriptionMoved { .. } => {
+                        println!("Inscription moved: {:?}", event);
+                    }
+                }
             }
         }
     });

@@ -1827,7 +1827,7 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 [[package]]
 name = "ord"
 version = "0.12.3"
-source = "git+https://github.com/magicoss/ord-kafka.git?rev=45762c22ff5a900101835befb40978ace8f32d9f#45762c22ff5a900101835befb40978ace8f32d9f"
+source = "git+https://github.com/magicoss/ord-kafka.git?rev=fff4cc4#fff4cc4924c299abc693211de7f0231bb3d59d9b"
 dependencies = [
  "anyhow",
  "async-trait",
