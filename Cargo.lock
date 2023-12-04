@@ -1826,8 +1826,8 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "ord"
-version = "0.12.2"
-source = "git+https://github.com/magicoss/ord-kafka.git?branch=miyu/location-update-channel#e8e65da2fb5cce98e53d54dd95f48ea451a16c23"
+version = "0.12.3"
+source = "git+https://github.com/magicoss/ord-kafka.git?rev=45762c22ff5a900101835befb40978ace8f32d9f#45762c22ff5a900101835befb40978ace8f32d9f"
 dependencies = [
  "anyhow",
  "async-trait",
