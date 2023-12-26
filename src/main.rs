@@ -1,11 +1,13 @@
 use clap::Parser;
 use mongodb::{
     bson::{doc, oid::ObjectId},
+    options::CreateCollectionOptions,
     Client, Collection,
 };
 use ord::{
     index::{Index, LocationUpdateEvent},
     options::Options,
+    Object,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -29,6 +31,14 @@ struct Transfer {
     transfered: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct XMail {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    _id: Option<ObjectId>,
+    transfer: Option<ObjectId>,
+    event: Object,
+}
+
 #[tokio::main]
 async fn main() {
     println!("Starting custom ord indexer...");
@@ -40,10 +50,31 @@ async fn main() {
     let database = client.database("cbrc_index_3000");
     let transfers_collection: Collection<Transfer> = database.collection("transfers");
 
+    let mut xmail_collection_options = CreateCollectionOptions::builder()
+        .capped(true)
+        .size(60_000_000)
+        .max(10_000)
+        .build();
+
+    let collection_name = "xmails_collection";
+
+    match database
+        .create_collection(collection_name, xmail_collection_options)
+        .await
+    {
+        Ok(_) => println!("Collection capped '{}' créée.", collection_name),
+        Err(e) => eprintln!(
+            "Erreur lors de la création de la collection capped: {:?}",
+            e
+        ),
+    }
+
+    let xmails_collection: Collection<XMail> = database.collection(collection_name);
     let count = transfers_collection
         .count_documents(doc! {}, None)
         .await
         .unwrap();
+
     println!("Collection 'transfers' contains: {}", count);
 
     let index_options = Options::parse();
@@ -81,6 +112,7 @@ async fn main() {
                                 println!("Move detected for existing transfer: {:?}", transfer);
 
                                 // TODO: add event info + transfer id to xmails
+                                // see : xmails_collection.insert_one(xmail, None).await.unwrap();
                                 // TODO: set transfered = true
                             }
                             Ok(None) => {
