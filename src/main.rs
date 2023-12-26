@@ -67,11 +67,11 @@ async fn main() {
                     }
                     LocationUpdateEvent::InscriptionMoved { inscription_id, .. } => {
                         let txid = inscription_id.txid.to_string();
-                        let index = inscription_id.index as i64;
+                        let index = inscription_id.index as i32;
 
                         println!("Debug: txid = {}", txid);
                         println!("Debug: index = {}", index);
-                        let query = doc! { "txid": &txid };
+                        let query = doc! { "txid": &txid, "output": index, "transfered": false };
                         println!("Debug: MongoDB = {:?}", query);
 
                         let result = transfers_collection.find_one(Some(query), None).await;
@@ -79,12 +79,15 @@ async fn main() {
                         match result {
                             Ok(Some(transfer)) => {
                                 println!("Move detected for existing transfer: {:?}", transfer);
+
+                                // TODO: add event info + transfer id to xmails
+                                // TODO: set transfered = true
                             }
                             Ok(None) => {
                                 println!("Inscription moved: {:?}", event);
                             }
                             Err(e) => {
-                                eprintln!("Erreur lors de la recherche du transfert: {:?}", e);
+                                eprintln!("Err: {:?}", e);
                             }
                         }
                     } // ... autres cas ...
