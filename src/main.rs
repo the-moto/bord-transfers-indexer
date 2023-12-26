@@ -1,8 +1,13 @@
 use clap::Parser;
+use mongodb::{
+    bson::{doc, oid::ObjectId},
+    Client, Collection,
+};
 use ord::{
     index::{Index, LocationUpdateEvent},
     options::Options,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     sync::atomic::{AtomicBool, Ordering},
     thread,
@@ -10,9 +15,36 @@ use std::{
 
 static SHUTDOWN_SIGNAL: AtomicBool = AtomicBool::new(false);
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Transfer {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    op: Option<ObjectId>,
+    tick: String,
+    txid: String,
+    acc: String,
+    amt: f64,
+    to: Option<String>,
+    output: i32,
+    value: Option<f64>,
+    transfered: bool,
+}
+
 #[tokio::main]
 async fn main() {
     println!("Starting custom ord indexer...");
+
+    // MongoDB connection
+    let client = Client::with_uri_str("mongodb://localhost:27017")
+        .await
+        .unwrap();
+    let database = client.database("cbrc_index_3000");
+    let transfers_collection: Collection<Transfer> = database.collection("transfers");
+
+    let count = transfers_collection
+        .count_documents(doc! {}, None)
+        .await
+        .unwrap();
+    println!("Collection 'transfers' contains: {}", count);
 
     let index_options = Options::parse();
     let mut index = Index::open(&index_options).unwrap();
@@ -33,9 +65,29 @@ async fn main() {
                     LocationUpdateEvent::InscriptionCreated { .. } => {
                         println!("Inscription created: {:?}", event);
                     }
-                    LocationUpdateEvent::InscriptionMoved { .. } => {
-                        println!("Inscription moved: {:?}", event);
-                    }
+                    LocationUpdateEvent::InscriptionMoved { inscription_id, .. } => {
+                        let txid = inscription_id.txid.to_string();
+                        let index = inscription_id.index as i64;
+
+                        println!("Debug: txid = {}", txid);
+                        println!("Debug: index = {}", index);
+                        let query = doc! { "txid": &txid };
+                        println!("Debug: MongoDB = {:?}", query);
+
+                        let result = transfers_collection.find_one(Some(query), None).await;
+
+                        match result {
+                            Ok(Some(transfer)) => {
+                                println!("Move detected for existing transfer: {:?}", transfer);
+                            }
+                            Ok(None) => {
+                                println!("Inscription moved: {:?}", event);
+                            }
+                            Err(e) => {
+                                eprintln!("Erreur lors de la recherche du transfert: {:?}", e);
+                            }
+                        }
+                    } // ... autres cas ...
                 }
             }
         }
